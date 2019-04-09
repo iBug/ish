@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include <unistd.h>
+#include <errno.h>
 #include <sys/wait.h>
 
 #define MAX_LEN 256
@@ -25,6 +26,8 @@ char arg[MAX_ARGS][MAX_ARG_LEN];
 
 char *argv[MAX_ARGS + 1];
 int cmdlen, argcount;
+
+int process_builtin(int, char const * const * args);
 
 int main(int _argc, char** _argv, char** _envp) {
     char *s;
@@ -82,6 +85,10 @@ int main(int _argc, char** _argv, char** _envp) {
             DEBUG("argcount = %d\n", argcount);
             DEBUG("$0 = %s\n", argv[0]);
 
+            // Check for builtin commands
+            if (process_builtin(argcount, argv))
+                continue;
+
             // Execute the command
             pid_t fork_pid = fork();
 
@@ -100,10 +107,36 @@ int main(int _argc, char** _argv, char** _envp) {
                 int err = execvp(argv[0], argv);
 
                 // Normally unreachable - something's wrong
-                DEBUG("exec: %d\n", err);
+                DEBUG("exec(3): %d\n", err);
                 exit(233);
             }
         }
     }
     return 0;
+}
+
+int process_builtin(int argc, char const * const * args) {
+    const char *cmd = args[0];
+    if (!strlen(cmd)) {
+        return 0; // wat?
+    }
+    else if (!strcmp(cmd, "cd")) {
+        const char *target;
+        if (argc < 2) {
+            target = getenv("HOME");
+        } else {
+            target = args[1];
+        }
+        int result = chdir(target);
+        if (result) {
+            fprintf(stderr, "cd: %s\n", strerror(errno));
+        }
+    }
+    else if (!strcmp(cmd, "exit")) {
+        exit(0);
+    }
+    else {
+        return 0; // Not a built-in
+    }
+    return 1; // True - this is a built-in
 }
