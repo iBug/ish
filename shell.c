@@ -96,11 +96,12 @@ int main(int _argc, char** _argv, char** _envp) {
                 continue;
 
             // Handle pipes
+            pipefd[0] = pipefd[1] = 0;
             if (is_pipe) {
                 int err = pipe(pipefd); // Get a pipe
-                write_pipe = pipefd[1];
                 DEBUG("pipe: %d -> %d\n", pipefd[1], pipefd[0]);
             }
+            write_pipe = pipefd[1];
 
             // Execute the command
             // If the command does not end with a pipe, use fork(2)
@@ -113,18 +114,17 @@ int main(int _argc, char** _argv, char** _envp) {
                     close(write_pipe);
                     write_pipe = 0;
                     if (read_pipe > 0) {
-                        close(read_pipe);
+                        close(read_pipe); // Shut down the old pipe
                     }
-                    read_pipe = pipefd[0];
+                    read_pipe = pipefd[0]; // Record the new pipe for next loop
                 }
 
                 // If the last command has a pipe, don't wait
                 if (!is_pipe) {
                     // Wait for the child to complete
-                    int status, ecode;
+                    int status;
                     waitpid(fork_pid, &status, 0);
-                    ecode = WEXITSTATUS(status);
-                    DEBUG("Child exit code: %d\n", ecode);
+                    DEBUG("Child exit code: %d\n", WEXITSTATUS(ecode));
                 }
             }
             else {
@@ -132,11 +132,12 @@ int main(int _argc, char** _argv, char** _envp) {
                 if (read_pipe > 0) {
                     // The last command has an open pipe, connect it with stdin:
                     dup2(read_pipe, 0);
+                    close(read_pipe);
                 }
                 if (is_pipe) {
                     // The current command has an outgoing pipe
                     dup2(write_pipe, 1);
-                    close(read_pipe);
+                    close(write_pipe);
                 }
                 int err = execvp(argv[0], argv);
 
@@ -168,6 +169,14 @@ int process_builtin(int argc, char const * const * args) {
     }
     else if (!strcmp(cmd, "exit")) {
         exit(0);
+    }
+    else if (!strcmp(cmd, "exec")) {
+        if (argc < 2) {
+            fprintf(stderr, "exec: No command");
+            return 1;
+        }
+        execvp(args[1], (char * const *)args + 1);
+        fprintf(stderr, "%s: %s\n", args[1], strerror(errno));
     }
     else {
         return 0; // Not a built-in
