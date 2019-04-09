@@ -32,6 +32,7 @@ int process_builtin(int, char const * const * args);
 int main(int _argc, char** _argv, char** _envp) {
     char *s;
     int i, j;
+    int is_pipe, read_pipe = 0, write_pipe, pipefd[2];
 
     while (1) {
         // Prepare prompt
@@ -53,7 +54,7 @@ int main(int _argc, char** _argv, char** _envp) {
         i = 0;
         // Loop first in case of ';' to handle
         while (i < cmdlen) {
-            for (argcount = 0; i < cmdlen; argcount++) {
+            for (is_pipe = 0, argcount = 0; i < cmdlen;) {
                 // Skip all control stuff
                 while (cmd[i] <= ' ' || cmd[i] == '\x7F') {
                     cmd[i] = 0;
@@ -62,18 +63,22 @@ int main(int _argc, char** _argv, char** _envp) {
 
                 // Make a pointer to all following non-control characters
                 s = cmd + i;
-                argv[argcount] = s;
                 while (cmd[i] > ' ' && cmd[i] < '\x7F') {
                     if (cmd[i] == ';') {
                         cmd[i] = 0;
                         break;
+                    } else if (cmd[i] == '|') {
+                        cmd[i] = 0;
+                        is_pipe = 1;
+                        break;
                     }
                     i++;
                 }
+                if (*s)
+                    argv[argcount++] = s; // Prevent an empty argument
 
                 // Get ready to execute!
                 if (cmd[i] == 0) {
-                    argcount++; // The last pointer ...
                     break;
                 }
             }
@@ -81,34 +86,69 @@ int main(int _argc, char** _argv, char** _envp) {
                 printf("No command\n");
                 continue;
             }
-            argv[argcount] = NULL; // ... must be NULL
+            argv[argcount] = NULL; // The last pointer of ARGV must be NULL
             DEBUG("argcount = %d\n", argcount);
-            DEBUG("$0 = %s\n", argv[0]);
+            for (j = 0; j < argcount; j++)
+                DEBUG("$%d = %s\n", j, argv[j]);
 
             // Check for builtin commands
-            if (process_builtin(argcount, argv))
+            if (process_builtin(argcount, (const char * const *)argv))
                 continue;
 
+            // Handle pipes
+            if (is_pipe) {
+                int err = pipe(pipefd); // Get a pipe
+                write_pipe = pipefd[1];
+                DEBUG("pipe: %d -> %d\n", pipefd[1], pipefd[0]);
+            }
+
             // Execute the command
+            // If the command does not end with a pipe, use fork(2)
             pid_t fork_pid = fork();
 
             if (fork_pid) {
                 // Parent
-                int status, ecode;
-                waitpid(fork_pid, &status, 0);
-                ecode = WEXITSTATUS(status);
-                DEBUG("Child exit code: %d\n", ecode);
-                if (ecode == 233) {
-                    printf("OSLab2: %s: not found\n", argv[0]);
+                // Clear the pipe record
+                if (is_pipe) {
+                    close(write_pipe);
+                    write_pipe = 0;
+                    if (read_pipe > 0) {
+                        close(read_pipe);
+                    }
+                    read_pipe = pipefd[0];
+                }
+
+                // If the last command has a pipe, don't wait
+                if (!is_pipe) {
+                    // Wait for the child to complete
+                    int status, ecode;
+                    waitpid(fork_pid, &status, 0);
+                    ecode = WEXITSTATUS(status);
+                    DEBUG("Child exit code: %d\n", ecode);
+                    if (ecode == 127) {
+                        printf("OSLab2: %s: not found\n", argv[0]);
+                    } else if (ecode != 0) {
+                        fprintf(stderr, "%d|", ecode);
+                        fflush(stderr);
+                    }
                 }
             }
             else {
                 // Child - Go execve
+                if (read_pipe > 0) {
+                    // The last command has an open pipe, connect it with stdin:
+                    dup2(read_pipe, 0);
+                }
+                if (is_pipe) {
+                    // The current command has an outgoing pipe
+                    dup2(write_pipe, 1);
+                    close(read_pipe);
+                }
                 int err = execvp(argv[0], argv);
 
                 // Normally unreachable - something's wrong
-                DEBUG("exec(3): %d\n", err);
-                exit(233);
+                DEBUG("exec: %d\n", err);
+                exit(127);
             }
         }
     }
