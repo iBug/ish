@@ -125,12 +125,6 @@ int main(int _argc, char** _argv, char** _envp) {
                     waitpid(fork_pid, &status, 0);
                     ecode = WEXITSTATUS(status);
                     DEBUG("Child exit code: %d\n", ecode);
-                    if (ecode == 127) {
-                        printf("OSLab2: %s: not found\n", argv[0]);
-                    } else if (ecode != 0) {
-                        fprintf(stderr, "%d|", ecode);
-                        fflush(stderr);
-                    }
                 }
             }
             else {
@@ -147,7 +141,7 @@ int main(int _argc, char** _argv, char** _envp) {
                 int err = execvp(argv[0], argv);
 
                 // Normally unreachable - something's wrong
-                DEBUG("exec: %d\n", err);
+                fprintf(stderr, "OSLab2: %s: %s\n", argv[0], strerror(errno));
                 exit(127);
             }
         }
