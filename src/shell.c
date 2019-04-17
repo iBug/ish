@@ -43,7 +43,8 @@ int main(int _argc, char** _argv, char** _envp) {
     while (1) {
         char *cmd = get_input();
         if (!cmd) {
-            fprintf(stderr, "exit\n");
+            if (isatty(0))
+                fprintf(stderr, "exit\n");
             exit(0);
         }
         cmdlen = strlen(cmd);

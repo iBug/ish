@@ -73,6 +73,30 @@ int process_builtin(int argc, char * const * args) {
             }
         }
     }
+    else if (!strcmp(cmd, "unset")) {
+        const char *item;
+        int len, flag;
+        for (int i = 1; i < argc; i++) {
+            item = args[i];
+            len = strlen(item);
+            flag = 1;
+            for (int j = 0; j < len; j++) {
+                if (
+                    (item[j] >= 'A' && item[j] <= 'Z') ||
+                    (item[j] >= 'a' && item[j] <= 'z') ||
+                    (item[j] >= '0' && item[j] <= '9') ||
+                    item[j] == '_') {
+                    // Valid character in identifier
+                } else {
+                    flag = 0;
+                    break; // Invalid identifier
+                }
+            }
+            if (flag) {
+                unsetenv(item);
+            }
+        }
+    }
     else {
         return 0; // Not a built-in
     }
