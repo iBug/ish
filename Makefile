@@ -1,12 +1,10 @@
-.PHONY: all clean
+.PHONY: all sh clean
 
 all: sh
 
-sh: src/sh
-	cp $< $@
-
-src/sh: src/Makefile
-	${MAKE} -C src
+sh:
+	${MAKE} --no-print-directory -C src
+	cp src/sh $@
 
 clean:
 	@${MAKE} --no-print-directory -C src clean

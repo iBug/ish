@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include "global.h"
+
 int process_builtin(int argc, char * const * args) {
     const char *cmd = args[0];
     if (!strlen(cmd)) {
@@ -25,6 +27,10 @@ int process_builtin(int argc, char * const * args) {
         if (result) {
             fprintf(stderr, "cd: %s\n", strerror(errno));
         }
+    }
+    else if (!strcmp(cmd, "pwd")) {
+        puts(cwd);
+        return 1;
     }
     else if (!strcmp(cmd, "exit")) {
         exit(0);
