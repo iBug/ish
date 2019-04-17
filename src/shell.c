@@ -38,7 +38,7 @@ int cmdlen, argcount;
 int main(int _argc, char** _argv, char** _envp) {
     char *s;
     int i, j;
-    int is_pipe, read_pipe = 0, write_pipe, pipefd[2];
+    int is_pipe, redir_mode, rredir = 0, wredir, pipefd[2];
 
     while (1) {
         char *cmd = get_input();
@@ -52,7 +52,8 @@ int main(int _argc, char** _argv, char** _envp) {
         i = 0;
         // Loop first in case of ';' to handle
         while (i < cmdlen) {
-            for (is_pipe = 0, argcount = 0; i < cmdlen;) {
+            is_pipe = 0, redir_mode = 0;
+            for (argcount = 0; i < cmdlen;) {
                 // Skip all control stuff
                 while (cmd[i] <= ' ' || cmd[i] == '\x7F') {
                     cmd[i] = 0;
@@ -60,6 +61,8 @@ int main(int _argc, char** _argv, char** _envp) {
                 }
 
                 // Make a pointer to all following non-control characters
+                int prev_redir_mode = redir_mode;
+                redir_mode = 0;
                 s = cmd + i;
                 while (cmd[i] > ' ' && cmd[i] < '\x7F') {
                     if (cmd[i] == ';') {
@@ -69,11 +72,22 @@ int main(int _argc, char** _argv, char** _envp) {
                         cmd[i] = 0;
                         is_pipe = 1;
                         break;
+                    } else if (cmd[i] == '<') {
+                        redir_mode = 'r';
+                        cmd[i] = 0;
+                        i++; // Continue splitting arguments
+                        break;
                     }
                     i++;
                 }
-                if (*s)
-                    argv[argcount++] = s; // Prevent an empty argument
+                if (*s) {
+                    if (prev_redir_mode == 'r') {
+                        FILE *fp = fopen(s, "r");
+                        rredir = fileno(fp);
+                    } else {
+                        argv[argcount++] = s; // Prevent an empty argument
+                    }
+                }
 
                 // Get ready to execute!
                 if (cmd[i] == 0) {
@@ -99,7 +113,7 @@ int main(int _argc, char** _argv, char** _envp) {
                 int err = pipe(pipefd); // Get a pipe
                 DEBUG("pipe: %d -> %d\n", pipefd[1], pipefd[0]);
             }
-            write_pipe = pipefd[1];
+            wredir = pipefd[1];
 
             // Execute the command
             // If the command does not end with a pipe, use fork(2)
@@ -109,12 +123,12 @@ int main(int _argc, char** _argv, char** _envp) {
                 // Parent
                 // Clear the pipe record
                 if (is_pipe) {
-                    close(write_pipe);
-                    write_pipe = 0;
-                    if (read_pipe > 0) {
-                        close(read_pipe); // Shut down the old pipe
+                    close(wredir);
+                    wredir = 0;
+                    if (rredir > 0) {
+                        close(rredir); // Shut down the old pipe
                     }
-                    read_pipe = pipefd[0]; // Record the new pipe for next loop
+                    rredir = pipefd[0]; // Record the new pipe for next loop
                 }
 
                 // If the last command has a pipe, don't wait
@@ -127,15 +141,15 @@ int main(int _argc, char** _argv, char** _envp) {
             }
             else {
                 // Child - Go execve
-                if (read_pipe > 0) {
+                if (rredir > 0) {
                     // The last command has an open pipe, connect it with stdin:
-                    dup2(read_pipe, 0);
-                    close(read_pipe);
+                    dup2(rredir, 0);
+                    close(rredir);
                 }
                 if (is_pipe) {
                     // The current command has an outgoing pipe
-                    dup2(write_pipe, 1);
-                    close(write_pipe);
+                    dup2(wredir, 1);
+                    close(wredir);
                 }
                 int err = execvp(argv[0], argv);
 
