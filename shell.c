@@ -1,4 +1,4 @@
-// File: ish.c
+// File: shell.c
 // Author: iBug
 
 #include <stdio.h>
@@ -9,12 +9,17 @@
 #include <errno.h>
 #include <sys/wait.h>
 
+#ifdef HAVE_READLINE
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
+
 #define MAX_LEN 256
 #define MAX_ARGS 8
 #define MAX_ARG_LEN 64
 
 #ifdef D
-#define DEBUG(a...) fprintf(stderr, "OSLab2 DEBUG: " a)
+#define DEBUG(a...) fprintf(stderr, "OSHLab2 DEBUG: " a)
 #else
 #define DEBUG(a...)
 #endif
@@ -36,7 +41,8 @@ int main(int _argc, char** _argv, char** _envp) {
 
     while (1) {
         // Prepare prompt
-        fprintf(stderr, "OSLab2-> ");
+        getcwd(cwd, MAX_LEN);
+        fprintf(stderr, "%s $ ", cwd);
         fflush(stderr);
 
         // Get input
