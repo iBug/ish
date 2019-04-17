@@ -30,10 +30,6 @@ int process_builtin(int argc, char * const * args) {
     }
     else if (!strcmp(cmd, "pwd")) {
         puts(cwd);
-        return 1;
-    }
-    else if (!strcmp(cmd, "exit")) {
-        exit(0);
     }
     else if (!strcmp(cmd, "exec")) {
         if (argc < 2) {
@@ -42,6 +38,40 @@ int process_builtin(int argc, char * const * args) {
         }
         execvp(args[1], (char * const *)args + 1);
         fprintf(stderr, "%s: %s\n", args[1], strerror(errno));
+    }
+    else if (!strcmp(cmd, "exit")) {
+        exit(0);
+    }
+    else if (!strcmp(cmd, "export")) {
+        // process arguments one-by-one
+        const char *item, *ident, *value;
+        int len, flag;
+        for (int i = 1; i < argc; i++) {
+            item = args[i];
+            len = strlen(item);
+            ident = item;
+            value = "";
+            flag = 0;
+            for (int j = 0; j < len; j++) {
+                if (item[j] == '=') {
+                    args[i][j] = 0;
+                    value = item + j + 1;
+                    flag = 1;
+                    break;
+                } else if (
+                    (item[j] >= 'A' && item[j] <= 'Z') ||
+                    (item[j] >= 'a' && item[j] <= 'z') ||
+                    (item[j] >= '0' && item[j] <= '9') ||
+                    item[j] == '_') {
+                    // Valid character in identifier
+                } else {
+                    break; // Invalid identifier
+                }
+            }
+            if (flag) {
+                setenv(ident, value, 1);
+            }
+        }
     }
     else {
         return 0; // Not a built-in
