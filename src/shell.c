@@ -77,15 +77,38 @@ int main(int _argc, char** _argv, char** _envp) {
                         cmd[i] = 0;
                         i++; // Continue splitting arguments
                         break;
+                    } else if (cmd[i] == '>') {
+                        if (cmd[i + 1] == '>') {
+                            redir_mode = 'a';
+                            cmd[i] = cmd[i + 1] = 0;
+                            i += 2;
+                        } else {
+                            redir_mode = 'w';
+                            cmd[i] = 0;
+                            i++;
+                        }
+                        break;
                     }
                     i++;
                 }
-                if (*s) {
+                if (*s) { // Prevent empty stuff
                     if (prev_redir_mode == 'r') {
+                        if (rredir > 0)
+                            close(rredir); // Avoid jamming
                         FILE *fp = fopen(s, "r");
                         rredir = fileno(fp);
+                    } else if (prev_redir_mode == 'w') {
+                        if (wredir > 0)
+                            close(wredir);
+                        FILE *fp = fopen(s, "w");
+                        wredir = fileno(fp);
+                    } else if (prev_redir_mode == 'a') {
+                        if (wredir > 0)
+                            close(wredir);
+                        FILE *fp = fopen(s, "a");
+                        wredir = fileno(fp);
                     } else {
-                        argv[argcount++] = s; // Prevent an empty argument
+                        argv[argcount++] = s;
                     }
                 }
 
@@ -112,8 +135,8 @@ int main(int _argc, char** _argv, char** _envp) {
             if (is_pipe) {
                 int err = pipe(pipefd); // Get a pipe
                 DEBUG("pipe: %d -> %d\n", pipefd[1], pipefd[0]);
+                wredir = pipefd[1];
             }
-            wredir = pipefd[1];
 
             // Execute the command
             // If the command does not end with a pipe, use fork(2)
@@ -122,13 +145,15 @@ int main(int _argc, char** _argv, char** _envp) {
             if (fork_pid) {
                 // Parent
                 // Clear the pipe record
+                if (rredir > 0) {
+                    close(rredir); // Shut down the old pipe
+                }
                 if (is_pipe) {
+                    rredir = pipefd[0]; // Record the new pipe for next loop
+                }
+                if (wredir > 0) {
                     close(wredir);
                     wredir = 0;
-                    if (rredir > 0) {
-                        close(rredir); // Shut down the old pipe
-                    }
-                    rredir = pipefd[0]; // Record the new pipe for next loop
                 }
 
                 // If the last command has a pipe, don't wait
@@ -146,8 +171,8 @@ int main(int _argc, char** _argv, char** _envp) {
                     dup2(rredir, 0);
                     close(rredir);
                 }
-                if (is_pipe) {
-                    // The current command has an outgoing pipe
+                if (wredir > 0) {
+                    // The current command has an outgoing redirection
                     dup2(wredir, 1);
                     close(wredir);
                 }
