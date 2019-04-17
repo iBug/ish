@@ -95,18 +95,25 @@ int main(int _argc, char** _argv, char** _envp) {
                     if (prev_redir_mode == 'r') {
                         if (rredir > 0)
                             close(rredir); // Avoid jamming
+                        cmd[i] = 0;
                         FILE *fp = fopen(s, "r");
+                        DEBUG("%x: %s\n", fp, s);
                         rredir = fileno(fp);
+                        continue;
                     } else if (prev_redir_mode == 'w') {
                         if (wredir > 0)
                             close(wredir);
+                        cmd[i] = 0;
                         FILE *fp = fopen(s, "w");
                         wredir = fileno(fp);
+                        continue;
                     } else if (prev_redir_mode == 'a') {
                         if (wredir > 0)
                             close(wredir);
+                        cmd[i] = 0;
                         FILE *fp = fopen(s, "a");
                         wredir = fileno(fp);
+                        continue;
                     } else {
                         argv[argcount++] = s;
                     }
@@ -161,7 +168,10 @@ int main(int _argc, char** _argv, char** _envp) {
                     // Wait for the child to complete
                     int status;
                     waitpid(fork_pid, &status, 0);
-                    DEBUG("Child exit code: %d\n", WEXITSTATUS(ecode));
+                    DEBUG("Child exit code: %d\n", WEXITSTATUS(status));
+                    if (WEXITSTATUS(status) != 0) {
+                        fprintf(stderr, "%d exited: %d\n", fork_pid, WEXITSTATUS(status));
+                    }
                 }
             }
             else {
