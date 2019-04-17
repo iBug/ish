@@ -38,7 +38,7 @@ int cmdlen, argcount;
 int main(int _argc, char** _argv, char** _envp) {
     char *s;
     int i, j;
-    int is_pipe, redir_mode, rredir = 0, wredir, pipefd[2];
+    int is_pipe, redir_mode, rredir = 0, wredir = 0, pipefd[2];
 
     while (1) {
         char *cmd = get_input();

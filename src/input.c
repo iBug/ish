@@ -5,6 +5,7 @@
 #include "global.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -24,11 +25,15 @@ char* get_input(void) {
 
 #ifdef HAVE_READLINE
     s = readline(prompt);
+    if (!s) {
+        return NULL;
+    }
     int sl = strlen(s);
     if (sl >= MAX_CMD_LEN) {
         s[MAX_CMD_LEN - 1] = 0;
     }
     strcpy(cmd, s);
+    add_history(cmd);
     free(s);
 #else
     fprintf(stderr, "%s", prompt);
