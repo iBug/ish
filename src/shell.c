@@ -14,12 +14,15 @@
 #include <readline/history.h>
 #endif
 
+#include "input.h"
+#include "builtins.h"
+
 #define MAX_LEN 256
 #define MAX_ARGS 8
 #define MAX_ARG_LEN 64
 
 #ifdef D
-#define DEBUG(a...) fprintf(stderr, "OSHLab2 DEBUG: " a)
+#define DEBUG(a...) fprintf(stderr, "DEBUG: " a)
 #else
 #define DEBUG(a...)
 #endif
@@ -32,29 +35,18 @@ char arg[MAX_ARGS][MAX_ARG_LEN];
 char *argv[MAX_ARGS + 1];
 int cmdlen, argcount;
 
-int process_builtin(int, char const * const * args);
-
 int main(int _argc, char** _argv, char** _envp) {
     char *s;
     int i, j;
     int is_pipe, read_pipe = 0, write_pipe, pipefd[2];
 
     while (1) {
-        // Prepare prompt
-        getcwd(cwd, MAX_LEN);
-        fprintf(stderr, "%s $ ", cwd);
-        fflush(stderr);
-
-        // Get input
-        s = fgets(cmd, MAX_LEN, stdin);
-        if (!s) {
-            puts("exit");
-            return 0;
+        char *cmd = get_input();
+        if (!cmd) {
+            fprintf(stderr, "exit\n");
+            exit(0);
         }
         cmdlen = strlen(cmd);
-        if (cmd[cmdlen - 1] == '\n') {
-            cmd[--cmdlen] = 0;
-        }
 
         // Split arguments
         i = 0;
@@ -98,7 +90,7 @@ int main(int _argc, char** _argv, char** _envp) {
                 DEBUG("$%d = %s\n", j, argv[j]);
 
             // Check for builtin commands
-            if (process_builtin(argcount, (const char * const *)argv))
+            if (process_builtin(argcount, argv))
                 continue;
 
             // Handle pipes
@@ -148,44 +140,10 @@ int main(int _argc, char** _argv, char** _envp) {
                 int err = execvp(argv[0], argv);
 
                 // Normally unreachable - something's wrong
-                fprintf(stderr, "OSLab2: %s: %s\n", argv[0], strerror(errno));
+                fprintf(stderr, "%s: %s\n", argv[0], strerror(errno));
                 exit(127);
             }
         }
     }
     return 0;
-}
-
-int process_builtin(int argc, char const * const * args) {
-    const char *cmd = args[0];
-    if (!strlen(cmd)) {
-        return 0; // wat?
-    }
-    else if (!strcmp(cmd, "cd")) {
-        const char *target;
-        if (argc < 2) {
-            target = getenv("HOME");
-        } else {
-            target = args[1];
-        }
-        int result = chdir(target);
-        if (result) {
-            fprintf(stderr, "cd: %s\n", strerror(errno));
-        }
-    }
-    else if (!strcmp(cmd, "exit")) {
-        exit(0);
-    }
-    else if (!strcmp(cmd, "exec")) {
-        if (argc < 2) {
-            fprintf(stderr, "exec: No command");
-            return 1;
-        }
-        execvp(args[1], (char * const *)args + 1);
-        fprintf(stderr, "%s: %s\n", args[1], strerror(errno));
-    }
-    else {
-        return 0; // Not a built-in
-    }
-    return 1; // True - this is a built-in
 }
