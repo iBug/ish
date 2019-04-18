@@ -1,4 +1,4 @@
-// File: shell.c
+// File: main.c
 // Author: iBug
 
 #include <stdio.h>
