@@ -141,7 +141,8 @@ int main(int _argc, char** _argv, char** _envp) {
             // Handle pipes
             pipefd[0] = pipefd[1] = 0;
             if (is_pipe) {
-                int err = pipe(pipefd); // Get a pipe
+                if (pipe(pipefd) == -1)
+                    fprintf(stderr, "pipe: %s\n", strerror(errno));
                 DEBUG("pipe: %d -> %d\n", pipefd[1], pipefd[0]);
                 wredir = pipefd[1];
             }
@@ -187,7 +188,7 @@ int main(int _argc, char** _argv, char** _envp) {
                     dup2(wredir, 1);
                     close(wredir);
                 }
-                int err = execvp(argv[0], argv);
+                execvp(argv[0], argv);
 
                 // Normally unreachable - something's wrong
                 fprintf(stderr, "%s: %s\n", argv[0], strerror(errno));
