@@ -64,6 +64,7 @@ int main(int _argc, char * const * _argv) {
 
                 // Make a pointer to all following non-control characters
                 int prev_redir_mode = redir_mode, x;
+                redir_mode = 0;
                 char context = 0, // Handle quotes
                      *parg = args[argcount];
                 s = parg;
@@ -82,6 +83,23 @@ int main(int _argc, char * const * _argv) {
                             char ch;
                             i += escape_char(&ch, cmd + i + 1);
                             parg[x++] = ch;
+                        } else if (cmd[i] == '|') {
+                            is_pipe = 1;
+                            cmd[i] = 0;
+                            break;
+                        } else if (cmd[i] == '<') {
+                            redir_mode = 'r';
+                            i++;
+                            break;
+                        } else if (cmd[i] == '>') {
+                            if (cmd[i + 1] == '>') {
+                                redir_mode = 'a';
+                                i += 2;
+                            } else {
+                                redir_mode = 'w';
+                                i++;
+                            }
+                            break;
                         } else if (cmd[i] == '$') {
                             char varname[MAX_VAR_NAME] = {};
                             const char *varvalue = NULL;
@@ -159,7 +177,7 @@ int main(int _argc, char * const * _argv) {
                 }
                 parg[x] = 0; // Terminate the string
 
-                if (*parg) { // Prevent empty stuff
+                if (*s) { // Prevent empty stuff
                     if (prev_redir_mode == 'r') {
                         if (rredir > 0)
                             close(rredir); // Avoid jamming
