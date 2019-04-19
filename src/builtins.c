@@ -10,6 +10,7 @@
 #include <errno.h>
 
 #include "global.h"
+#include "variables.h"
 
 int process_builtin(int argc, char * const * args) {
     const char *cmd = args[0];
@@ -96,6 +97,11 @@ int process_builtin(int argc, char * const * args) {
                 unsetenv(item);
             }
         }
+    }
+    else if (strchr(cmd, '=')) { // Some variable assignment?
+        char *ch = strchr(cmd, '=');
+        *ch++ = 0;
+        set_variable(cmd, ch, 0);
     }
     else {
         return 0; // Not a built-in
