@@ -17,5 +17,6 @@ extern variable_t variables[MAX_VARS];
 
 const char* get_variable(const char* name);
 const char* set_variable(const char* name, const char* value, int env);
+const char* unset_variable(const char* name);
 
 #endif

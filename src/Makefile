@@ -6,7 +6,7 @@ DEFINES := -D_POSIX_C_SOURCE=200809L
 
 all: sh
 
-sh: main.o builtins.o input.o global.o
+sh: main.o builtins.o input.o global.o variables.o
 	${CC} ${CFLAGS} -o $@ $^ ${LDFLAGS}
 
 %.o: %.c

@@ -17,9 +17,9 @@
 #include "input.h"
 #include "builtins.h"
 
-#define MAX_LEN 256
-#define MAX_ARGS 8
-#define MAX_ARG_LEN 64
+#define MAX_LEN 8192
+#define MAX_ARGS 32
+#define MAX_ARG_LEN 256
 
 #ifdef D
 #define DEBUG(a...) fprintf(stderr, "DEBUG: " a)
@@ -27,15 +27,13 @@
 #define DEBUG(a...)
 #endif
 
-char cwd[MAX_LEN];
-char cmd[MAX_LEN];
 char prompt[MAX_LEN];
-char arg[MAX_ARGS][MAX_ARG_LEN];
+char args[MAX_ARGS][MAX_ARG_LEN];
 
 char *argv[MAX_ARGS + 1];
 int cmdlen, argcount;
 
-int main(int _argc, char** _argv, char** _envp) {
+int main(int _argc, char * const * _argv) {
     char *s;
     int i, j;
     int is_pipe, redir_mode, rredir = 0, wredir = 0, pipefd[2];
