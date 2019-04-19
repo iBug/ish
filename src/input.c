@@ -14,6 +14,9 @@
 #include <readline/history.h>
 #endif
 
+static char username[64],
+            hostname[64];
+
 char* get_input(void) {
     static char cmd[MAX_CMD_LEN];
     static char prompt[MAX_PROMPT_LEN];
@@ -21,7 +24,25 @@ char* get_input(void) {
 
     // Prepare prompt
     s = getcwd(cwd, MAX_PATH);
+    if (!username[0]) {
+        getlogin_r(username, sizeof(username));
+        if (!username[0]) {
+            const char *pusername = getenv("USER");
+            if (pusername)
+                strncpy(username, pusername, sizeof(username) - 1);
+            else
+                strcpy(username, "<unknown>");
+        }
+    }
+    if (!hostname[0]) {
+        gethostname(hostname, sizeof(hostname));
+        hostname[sizeof(hostname) - 1] = 0;
+    }
+#ifdef COLOR_PROMPT
+    snprintf(prompt, sizeof(prompt), "\x1B[32;1m%s@%s\x1B[0m:\x1B[34;1m%s\x1B[0m $ ", username, hostname, cwd);
+#else
     snprintf(prompt, sizeof(prompt), "%s $ ", cwd);
+#endif
 
     if (isatty(STDIN_FILENO)) {
 #ifdef HAVE_READLINE

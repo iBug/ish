@@ -9,5 +9,6 @@
 #endif
 
 extern char cwd[MAX_PATH];
+extern int last_ecode;
 
 #endif

@@ -15,7 +15,10 @@
 #endif
 
 #include "input.h"
+#include "global.h"
 #include "builtins.h"
+#include "parsing.h"
+#include "variables.h"
 
 #define MAX_LEN 8192
 #define MAX_ARGS 32
@@ -28,7 +31,7 @@
 #endif
 
 char prompt[MAX_LEN];
-char argv[MAX_ARGS][MAX_ARG_LEN];
+char args[MAX_ARGS][MAX_ARG_LEN];
 
 char *argv[MAX_ARGS + 1];
 int cmdlen, argc, argcount;
@@ -53,46 +56,110 @@ int main(int _argc, char * const * _argv) {
         while (i < cmdlen) {
             is_pipe = 0, redir_mode = 0, argc = 0, argcount = 0;
             while (i < cmdlen) {
-                // Skip all control stuff
+                // Skip all unwanted stuff
                 while (cmd[i] <= ' ' || cmd[i] == '\x7F') {
                     cmd[i] = 0;
                     i++;
                 }
 
                 // Make a pointer to all following non-control characters
-                int prev_redir_mode = redir_mode, x = 0;
+                int prev_redir_mode = redir_mode, x;
                 char context = 0, // Handle quotes
                      *parg = args[argcount];
-                s = cmd + i;
-                while (i < cmd) {
-                // while (cmd[i] > ' ' && cmd[i] < '\x7F') {
-                    if (cmd[i] == ';') {
-                        cmd[i] = 0;
-                        break;
-                    } else if (cmd[i] == '|') {
-                        cmd[i] = 0;
-                        is_pipe = 1;
-                        break;
-                    } else if (cmd[i] == '<') {
-                        redir_mode = 'r';
-                        cmd[i] = 0;
-                        i++; // Continue splitting arguments
-                        break;
-                    } else if (cmd[i] == '>') {
-                        if (cmd[i + 1] == '>') {
-                            redir_mode = 'a';
-                            cmd[i] = cmd[i + 1] = 0;
-                            i += 2;
+                s = parg;
+                for (x = 0; i < cmdlen ; i++) {
+                    if (context == 0) {
+                        if (cmd[i] <= ' ' || cmd[i] == '\x7F') {
+                            parg[x++] = 0;
+                            break;
+                        } else if (cmd[i] == '\"') {
+                            context = '\"';
+                            continue;
+                        } else if (cmd[i] == '\'') {
+                            context = '\'';
+                            continue;
+                        } else if (cmd[i] == '\\') {
+                            char ch;
+                            i += escape_char(&ch, cmd + i + 1);
+                            parg[x++] = ch;
+                        } else if (cmd[i] == '$') {
+                            char varname[MAX_VAR_NAME] = {};
+                            const char *varvalue = NULL;
+                            int j = 0, brace = 0; i += 1;
+                            if (cmd[i] == '{') {
+                                brace = 1;
+                                i += 1;
+                            }
+                            for (;j < MAX_VAR_NAME; i++, j++) {
+                                if ((cmd[i] >= 'A' && cmd[i] <= 'Z') ||
+                                    (cmd[i] >= 'a' && cmd[i] <= 'z') ||
+                                    (cmd[i] >= '0' && cmd[i] <= '9') ||
+                                    cmd[i] == '_') {
+                                    varname[j] = cmd[i];
+                                } else if (brace) {
+                                    if (cmd[i] == '}') break;
+                                } else break;
+                            }
+                            varvalue = get_variable(varname);
+                            if (varvalue) {
+                                strncpy(parg + x, varvalue, MAX_ARG_LEN - x - 1);
+                                parg[MAX_ARG_LEN - 1] = 0;
+                                x += strlen(parg + x);
+                            }
+                            if (!brace)
+                                i--;
+                            continue;
+                        } else if (cmd[i] == '~' && x == 0) {
+                            strncpy(parg, getenv("HOME"), MAX_PATH);
+                            x = strlen(parg);
                         } else {
-                            redir_mode = 'w';
-                            cmd[i] = 0;
-                            i++;
+                            parg[x++] = cmd[i];
                         }
-                        break;
+                    } else if (context == '\"') {
+                        if (cmd[i] == '\"') {
+                            context = 0;
+                            continue;
+                        } else if (cmd[i] == '\\') {
+                            char ch;
+                            i += escape_char(&ch, cmd + i + 1);
+                            parg[x++] = ch;
+                        } else if (cmd[i] == '$') {
+                            char varname[MAX_VAR_NAME] = {};
+                            const char *varvalue;
+                            int j = 0; i += 1;
+                            for (;j < MAX_VAR_NAME; i++, j++) {
+                                if ((cmd[i] >= 'A' && cmd[i] <= 'Z') ||
+                                    (cmd[i] >= 'a' && cmd[i] <= 'z') ||
+                                    (cmd[i] >= '0' && cmd[i] <= '9') ||
+                                    cmd[i] == '_') {
+                                    varname[j] = cmd[i];
+                                } else break;
+                            }
+                            varvalue = get_variable(varname);
+                            if (varvalue) {
+                                strncpy(parg + x, varvalue, MAX_ARG_LEN - x - 1);
+                                parg[MAX_ARG_LEN - 1] = 0;
+                                x += strlen(parg + x);
+                            }
+                            i--;
+                            continue;
+                        } else {
+                            parg[x++] = cmd[i];
+                        }
+                    } else if (context == '\'') {
+                        if (cmd[i] == '\'')
+                            context = 0;
+                        else
+                            parg[x++] = cmd[i];
+                    } else {
+                        // Unrecognized "context"
+                        context = 0;
+                        i--;
                     }
-                    i++;
                 }
-                if (*s) { // Prevent empty stuff
+                parg[x] = 0; // Terminate the string
+
+                if (*parg) { // Prevent empty stuff
                     if (prev_redir_mode == 'r') {
                         if (rredir > 0)
                             close(rredir); // Avoid jamming
@@ -172,7 +239,8 @@ int main(int _argc, char * const * _argv) {
                     waitpid(fork_pid, &status, 0);
                     DEBUG("Child exit code: %d\n", WEXITSTATUS(status));
                     if (WEXITSTATUS(status) != 0) {
-                        fprintf(stderr, "%d exited: %d\n", fork_pid, WEXITSTATUS(status));
+                        last_ecode = WEXITSTATUS(status);
+                        // fprintf(stderr, "%d exited: %d\n", fork_pid, WEXITSTATUS(status));
                     }
                 }
             }
