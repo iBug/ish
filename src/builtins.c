@@ -70,7 +70,7 @@ int process_builtin(int argc, char * const * args) {
                 }
             }
             if (flag) {
-                setenv(ident, value, 1);
+                set_variable(ident, value, 1);
             }
         }
     }
@@ -94,7 +94,7 @@ int process_builtin(int argc, char * const * args) {
                 }
             }
             if (flag) {
-                unsetenv(item);
+                unset_variable(item);
             }
         }
     }
