@@ -28,10 +28,10 @@
 #endif
 
 char prompt[MAX_LEN];
-char args[MAX_ARGS][MAX_ARG_LEN];
+char argv[MAX_ARGS][MAX_ARG_LEN];
 
 char *argv[MAX_ARGS + 1];
-int cmdlen, argcount;
+int cmdlen, argc, argcount;
 
 int main(int _argc, char * const * _argv) {
     char *s;
@@ -41,7 +41,7 @@ int main(int _argc, char * const * _argv) {
     while (1) {
         char *cmd = get_input();
         if (!cmd) {
-            if (isatty(0))
+            if (isatty(STDIN_FILENO) && isatty(STDERR_FILENO))
                 fprintf(stderr, "exit\n");
             exit(0);
         }
@@ -51,8 +51,8 @@ int main(int _argc, char * const * _argv) {
         i = 0;
         // Loop first in case of ';' to handle
         while (i < cmdlen) {
-            is_pipe = 0, redir_mode = 0;
-            for (argcount = 0; i < cmdlen;) {
+            is_pipe = 0, redir_mode = 0, argc = 0, argcount = 0;
+            while (i < cmdlen) {
                 // Skip all control stuff
                 while (cmd[i] <= ' ' || cmd[i] == '\x7F') {
                     cmd[i] = 0;
@@ -60,10 +60,12 @@ int main(int _argc, char * const * _argv) {
                 }
 
                 // Make a pointer to all following non-control characters
-                int prev_redir_mode = redir_mode;
-                redir_mode = 0;
+                int prev_redir_mode = redir_mode, x = 0;
+                char context = 0, // Handle quotes
+                     *parg = args[argcount];
                 s = cmd + i;
-                while (cmd[i] > ' ' && cmd[i] < '\x7F') {
+                while (i < cmd) {
+                // while (cmd[i] > ' ' && cmd[i] < '\x7F') {
                     if (cmd[i] == ';') {
                         cmd[i] = 0;
                         break;
