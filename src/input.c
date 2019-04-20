@@ -39,7 +39,7 @@ char* get_input(void) {
         hostname[sizeof(hostname) - 1] = 0;
     }
 #ifdef COLOR_PROMPT
-    snprintf(prompt, sizeof(prompt), "\x1B[32;1m%s@%s\x1B[0m:\x1B[34;1m%s\x1B[0m $ ", username, hostname, cwd);
+    snprintf(prompt, sizeof(prompt), "\1\x1B[32;1m\2%s@%s\1\x1B[0m\2:\1\x1B[34;1m\2%s\1\x1B[0m\2 $ ", username, hostname, cwd);
 #else
     snprintf(prompt, sizeof(prompt), "%s $ ", cwd);
 #endif

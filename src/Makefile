@@ -7,7 +7,7 @@ DEFINES += -DHAVE_READLINE
 LDFLAGS += -lreadline
 
 # Uncomment the following line for color PS1 prompt (built-in)
-#DEFINES += -DCOLOR_PROMPT
+DEFINES += -DCOLOR_PROMPT
 
 .PHONY: all clean
 
