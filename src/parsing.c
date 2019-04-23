@@ -3,6 +3,7 @@
 
 #include "parsing.h"
 
+#include <stdlib.h>
 #include <string.h>
 #include "variables.h"
 
@@ -80,9 +81,9 @@ int expand_token(char* out, const char* s, size_t maxlen) {
     if (*s == '\\') {
         return escape_char(out, s + 1) + 1;
     } else if (*s == '$') {
-        char varname[MAX_VAR_NAME] = {};
+        char varname[MAX_VAR_NAME] = {}, ops[256] = {};
         const char *varvalue, *s_orig = s;
-        int j = 0, brace = 0;
+        int varlen, j = 0, brace = 0;
         if (s[1] == '{') {
             brace = 1;
             s += 2;
@@ -96,17 +97,39 @@ int expand_token(char* out, const char* s, size_t maxlen) {
                 *s == '_') {
                     varname[j] = *s;
             } else if (brace) {
-                if (*s == '}') {
-                    s++;
-                    break;
+                for (int i = 0; i < 256; i++, s++) {
+                    if (*s == '}') {
+                        s++;
+                        break;
+                    } else {
+                        ops[i] = *s;
+                    }
                 }
+                break;
             } else break;
         }
         varvalue = get_variable(varname);
+        varlen = strlen(varvalue);
         if (varvalue) {
-            strncpy(out, varvalue, maxlen - 1);
-        } else {
-            *out = 0;
+            if (!ops[0]) { // No operations
+                strncpy(out, varvalue, maxlen - 1);
+            } else { // get operations going
+                if (ops[0] == ':') {
+                    int i = 1, start = 0, len;
+                    start = atoi(ops + i);
+                    for (i++; ops[i] >= '0' && ops[i] <= '9'; i++);
+                    if (ops[i] == ':') {
+                        len = atoi(ops + i + 1);
+                    } else {
+                        len = varlen - start;
+                    }
+                    strncpy(out, varvalue + start, maxlen - 1);
+                    out[len] = 0;
+                }
+            }
+        } else { // Variable not present
+            // Some operations will happen here
+            *out = 0; // Set it to empty string
         }
         return s - s_orig;
     } else { // Nothing to expand
