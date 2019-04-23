@@ -3,6 +3,9 @@
 
 #include "parsing.h"
 
+#include <string.h>
+#include "variables.h"
+
 int escape_char(char* out, const char* s) {
     if (!s || !*s) return 0;
     switch(s[0]) {
@@ -72,6 +75,39 @@ int escape_char(char* out, const char* s) {
     }
 }
 
-int expand_str(char* out, const char* s) {
-    return 0;
+int expand_token(char* out, const char* s, size_t maxlen) {
+    if (*s == '\\') {
+        return escape_char(out, s);
+    } else if (*s == '$') {
+        char varname[MAX_VAR_NAME] = {};
+        const char *varvalue, *s_orig = s;
+        int j = 0, brace = 0;
+        if (s[1] == '{') {
+            brace = 1;
+            s += 2;
+        } else {
+            s++;
+        }
+        for (;j < MAX_VAR_NAME; s++, j++) {
+            if ((*s >= 'A' && *s <= 'Z') ||
+                (*s >= 'a' && *s <= 'z') ||
+                (*s >= '0' && *s <= '9') ||
+                *s == '_') {
+                    varname[j] = *s;
+            } else if (brace) {
+                if (*s == '}') {
+                    s++;
+                    break;
+                }
+            } else break;
+        }
+        varvalue = get_variable(varname);
+        if (varvalue) {
+            strncpy(out, varvalue, maxlen - 1);
+        }
+        return s - s_orig;
+    } else { // Nothing to expand
+        *out = *s;
+        return 1;
+    }
 }
