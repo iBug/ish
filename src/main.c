@@ -171,6 +171,7 @@ int main(int _argc, char * const * _argv) {
 
                         // Get back written data
                         fp = fopen(tmp, "r");
+                        remove(tmp);
                         rredir = fileno(fp);
                     } else if (prev_redir_mode == 'S') {
                         // Multi-line string, placeholder
@@ -208,6 +209,7 @@ int main(int _argc, char * const * _argv) {
 
                         // Get back written data
                         fp = fopen(tmp, "r");
+                        remove(tmp);
                         rredir = fileno(fp);
                     } else if (prev_redir_mode == 'w') {
                         if (wredir > 0)
