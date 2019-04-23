@@ -176,7 +176,7 @@ int main(int _argc, char * const * _argv) {
                         FILE *fp = fdopen(tmp_fd, "w");
                         // Write data
                         char *buf = malloc(sizeof(char) * MAX_CMD_LEN),
-                             *buf2 = malloc(sizeof(char) * 2 * MAX_CMD_LEN);
+                             *buf2 = malloc(sizeof(char) * MAX_CMD_LEN);
                         while (1) {
                             get_input(buf, 2);
                             if (!strcmp(buf, s)) // String end
@@ -185,9 +185,11 @@ int main(int _argc, char * const * _argv) {
                             // Process input buffer to expand escapes and variables
                             for (int i = 0, j = 0; i < buflen;) {
                                 if (buf[i] == '\\') {
-                                    // ???
+                                    i += expand_token(buf2 + j, buf + i, MAX_CMD_LEN - j - 1);
+                                    buf2[++j + 1] = 0;
                                 } else if (buf[i] == '$') {
-                                    // ???
+                                    i += expand_token(buf2 + j, buf + i, MAX_CMD_LEN - j - 1);
+                                    for (; buf2[j]; j++);
                                 } else {
                                     buf2[j++] = buf[i++];
                                 }

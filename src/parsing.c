@@ -77,7 +77,7 @@ int escape_char(char* out, const char* s) {
 
 int expand_token(char* out, const char* s, size_t maxlen) {
     if (*s == '\\') {
-        return escape_char(out, s);
+        return escape_char(out, s + 1) + 1;
     } else if (*s == '$') {
         char varname[MAX_VAR_NAME] = {};
         const char *varvalue, *s_orig = s;
