@@ -106,5 +106,6 @@ int process_builtin(int argc, char * const * args) {
     else {
         return 0; // Not a built-in
     }
+    fflush(NULL);
     return 1; // True - this is a built-in
 }

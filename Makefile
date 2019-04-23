@@ -1,6 +1,9 @@
-.PHONY: all sh clean
+.PHONY: all test sh clean
 
 all: sh
+
+test: sh
+	./sh < test.sh
 
 sh:
 	${MAKE} --no-print-directory -C src

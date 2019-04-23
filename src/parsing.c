@@ -105,6 +105,8 @@ int expand_token(char* out, const char* s, size_t maxlen) {
         varvalue = get_variable(varname);
         if (varvalue) {
             strncpy(out, varvalue, maxlen - 1);
+        } else {
+            *out = 0;
         }
         return s - s_orig;
     } else { // Nothing to expand

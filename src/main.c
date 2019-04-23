@@ -186,7 +186,8 @@ int main(int _argc, char * const * _argv) {
                                 break;
                             int buflen = strlen(buf);
                             // Process input buffer to expand escapes and variables
-                            for (int i = 0, j = 0; i < buflen;) {
+                            int i = 0, j = 0;
+                            while (i < buflen) {
                                 if (buf[i] == '\\') {
                                     i += expand_token(buf2 + j, buf + i, MAX_CMD_LEN - j - 1);
                                     buf2[++j + 1] = 0;
@@ -197,6 +198,7 @@ int main(int _argc, char * const * _argv) {
                                     buf2[j++] = buf[i++];
                                 }
                             }
+                            buf2[j] = 0;
                             fputs(buf2, fp);
                             fputc('\n', fp);
                         }
