@@ -3,6 +3,7 @@
 
 #include "parsing.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "variables.h"
@@ -83,10 +84,16 @@ int expand_token(char* out, const char* s, size_t maxlen) {
     } else if (*s == '$') {
         char varname[MAX_VAR_NAME] = {}, ops[256] = {};
         const char *varvalue, *s_orig = s;
-        int varlen, j = 0, brace = 0;
+        int varlen, j = 0;
+        unsigned char brace = 0, get_len = 0;
         if (s[1] == '{') {
             brace = 1;
-            s += 2;
+            if (s[2] == '#') {
+                get_len = 1;
+                s += 3;
+            } else {
+                s += 2;
+            }
         } else {
             s++;
         }
@@ -109,8 +116,11 @@ int expand_token(char* out, const char* s, size_t maxlen) {
             } else break;
         }
         varvalue = get_variable(varname);
-        varlen = strlen(varvalue);
-        if (varvalue) {
+        varlen = varvalue ? strlen(varvalue) : 0;
+
+        if (get_len) {
+            sprintf(out, "%d", varlen);
+        } else if (varvalue) {
             if (!ops[0]) { // No operations
                 strncpy(out, varvalue, maxlen - 1);
             } else { // get operations going
@@ -120,10 +130,14 @@ int expand_token(char* out, const char* s, size_t maxlen) {
                     for (i++; ops[i] >= '0' && ops[i] <= '9'; i++);
                     if (ops[i] == ':') {
                         len = atoi(ops + i + 1);
+                        if (len < 0)
+                            len = varlen - len;
                     } else {
                         len = varlen - start;
                     }
                     strncpy(out, varvalue + start, maxlen - 1);
+                    if (len > maxlen - 1)
+                        len = maxlen - 1; // Prevent overflow
                     out[len] = 0;
                 }
             }
