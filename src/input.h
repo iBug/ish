@@ -12,6 +12,6 @@
 #define MAX_PROMPT_LEN 260
 #endif
 
-char* get_input(void);
+char* get_input(char*, int);
 
 #endif

@@ -17,9 +17,11 @@
 static char username[64],
             hostname[64];
 
-char* get_input(void) {
+char* get_input(char *buf, int mode) {
     static char cmd[MAX_CMD_LEN];
     static char prompt[MAX_PROMPT_LEN];
+    if (!buf)
+        buf = cmd;
     char *s;
 
     // Prepare prompt
@@ -38,11 +40,17 @@ char* get_input(void) {
         gethostname(hostname, sizeof(hostname));
         hostname[sizeof(hostname) - 1] = 0;
     }
+
+    // mode = prompt type ${PS$mode}
+    if (mode == 1) { // Regular, $PS1
 #ifdef COLOR_PROMPT
-    snprintf(prompt, sizeof(prompt), "\1\x1B[32;1m\2%s@%s\1\x1B[0m\2:\1\x1B[34;1m\2%s\1\x1B[0m\2 $ ", username, hostname, cwd);
+        snprintf(prompt, sizeof(prompt), "\1\x1B[32;1m\2%s@%s\1\x1B[0m\2:\1\x1B[34;1m\2%s\1\x1B[0m\2 $ ", username, hostname, cwd);
 #else
-    snprintf(prompt, sizeof(prompt), "%s $ ", cwd);
+        snprintf(prompt, sizeof(prompt), "%s $ ", cwd);
 #endif
+    } else {
+        strcpy(prompt, "> "); // Continuation, $PS2
+    }
 
     if (isatty(STDIN_FILENO)) {
 #ifdef HAVE_READLINE
@@ -54,21 +62,21 @@ char* get_input(void) {
         if (sl >= MAX_CMD_LEN) {
             s[MAX_CMD_LEN - 1] = 0;
         }
-        strcpy(cmd, s);
-        add_history(cmd);
+        strcpy(buf, s);
+        add_history(buf);
         free(s);
 #else
         fprintf(stderr, "%s", prompt);
         fflush(stderr);
 
         // Get input
-        s = fgets(cmd, MAX_CMD_LEN, stdin);
+        s = fgets(buf, MAX_CMD_LEN, stdin);
         if (!s) {
             return NULL;
         }
-        int cmdlen = strlen(cmd);
-        if (cmd[cmdlen - 1] == '\n') {
-            cmd[--cmdlen] = 0;
+        int cmdlen = strlen(buf);
+        if (buf[cmdlen - 1] == '\n') {
+            buf[--cmdlen] = 0;
         } else {
             // Truncate the rest of the line
             int ch;
@@ -78,13 +86,13 @@ char* get_input(void) {
         }
 #endif
     } else {
-        s = fgets(cmd, MAX_CMD_LEN, stdin);
+        s = fgets(buf, MAX_CMD_LEN, stdin);
         if (!s) {
             return NULL;
         }
-        int cmdlen = strlen(cmd);
-        if (cmd[cmdlen - 1] == '\n') {
-            cmd[--cmdlen] = 0;
+        int cmdlen = strlen(buf);
+        if (buf[cmdlen - 1] == '\n') {
+            buf[--cmdlen] = 0;
         } else {
             // Truncate the rest of the line
             int ch;
@@ -94,5 +102,6 @@ char* get_input(void) {
         }
     }
 
-    return cmd;
+    // Return the buffer
+    return buf;
 }
