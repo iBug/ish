@@ -17,6 +17,8 @@ int process_builtin(int argc, char * const * args) {
     if (!strlen(cmd)) {
         return 0; // wat?
     }
+    else if (!strcmp(cmd, ":")) { // Special builtin
+    }
     else if (!strcmp(cmd, "cd")) {
         const char *target;
         if (argc < 2) {
