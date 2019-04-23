@@ -72,6 +72,9 @@ int main(int _argc, char * const * _argv) {
                         if (cmd[i] <= ' ' || cmd[i] == '\x7F') {
                             parg[x++] = 0;
                             break;
+                        } else if (cmd[i] == '#') {
+                            i = cmdlen - 1; // Comment, stop parsing
+                            continue;
                         } else if (cmd[i] == '\"') {
                             context = '\"';
                             continue;
@@ -229,7 +232,7 @@ int main(int _argc, char * const * _argv) {
                 }
             }
             if (argcount == 0) {
-                printf("No command\n");
+                DEBUG("No command\n");
                 continue;
             }
             argv[argcount] = NULL; // The last pointer of ARGV must be NULL

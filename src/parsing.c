@@ -17,6 +17,7 @@ int escape_char(char* out, const char* s) {
         case '<': *out = '<'; return 1;
         case '&': *out = '&'; return 1;
         case '$': *out = '$'; return 1;
+        case '#': *out = '#'; return 1;
         case ' ': *out = ' '; return 1;
         case 'e': *out = '\x1B'; return 1;
         case 'n': *out = '\n'; return 1;
