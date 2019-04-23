@@ -110,31 +110,8 @@ int main(int _argc, char * const * _argv) {
                             }
                             break;
                         } else if (cmd[i] == '$') {
-                            char varname[MAX_VAR_NAME] = {};
-                            const char *varvalue = NULL;
-                            int j = 0, brace = 0; i += 1;
-                            if (cmd[i] == '{') {
-                                brace = 1;
-                                i += 1;
-                            }
-                            for (;j < MAX_VAR_NAME; i++, j++) {
-                                if ((cmd[i] >= 'A' && cmd[i] <= 'Z') ||
-                                    (cmd[i] >= 'a' && cmd[i] <= 'z') ||
-                                    (cmd[i] >= '0' && cmd[i] <= '9') ||
-                                    cmd[i] == '_') {
-                                    varname[j] = cmd[i];
-                                } else if (brace) {
-                                    if (cmd[i] == '}') break;
-                                } else break;
-                            }
-                            varvalue = get_variable(varname);
-                            if (varvalue) {
-                                strncpy(parg + x, varvalue, MAX_ARG_LEN - x - 1);
-                                parg[MAX_ARG_LEN - 1] = 0;
-                                x += strlen(parg + x);
-                            }
-                            if (!brace)
-                                i--;
+                            i += expand_token(parg + x, cmd + i, MAX_ARG_LEN - x - 1) - 1;
+                            for (; parg[x]; x++); // Move parg[x] to end of string
                             continue;
                         } else if (cmd[i] == '~' && x == 0) {
                             strncpy(parg, getenv("HOME"), MAX_PATH);
