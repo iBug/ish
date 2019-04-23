@@ -215,8 +215,15 @@ int main(int _argc, char * const * _argv) {
                         int tmp_fd = mkstemp(tmp);
                         FILE *fp = fdopen(tmp_fd, "w");
                         // Write data
-                        fputs(s, fp);
-                        fputc('\n', fp);
+                        char *buf = malloc(sizeof(char) * MAX_CMD_LEN);
+                        while (1) {
+                            get_input(buf, 2);
+                            if (!strcmp(buf, s)) // String end
+                                break;
+                            fputs(buf, fp);
+                            fputc('\n', fp);
+                        }
+                        free(buf);
                         fclose(fp);
                         close(tmp_fd);
 
