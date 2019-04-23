@@ -142,8 +142,14 @@ int expand_token(char* out, const char* s, size_t maxlen) {
                 }
             }
         } else { // Variable not present
-            // Some operations will happen here
-            *out = 0; // Set it to empty string
+            if (!ops[0]) {
+                *out = 0; // Set it to empty string
+            } else {
+                if (ops[0] == '=') {
+                    set_variable(varname, ops + 1, 0);
+                    strncpy(out, ops + 1, maxlen - 1);
+                }
+            }
         }
         return s - s_orig;
     } else { // Nothing to expand
