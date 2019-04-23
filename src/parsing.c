@@ -15,12 +15,32 @@ int escape_char(char* out, const char* s) {
         case '&': *out = '&'; return 1;
         case '$': *out = '$'; return 1;
         case ' ': *out = ' '; return 1;
-        case '0': *out = '\0'; return 1;
         case 'e': *out = '\x1B'; return 1;
         case 'n': *out = '\n'; return 1;
         case 'r': *out = '\r'; return 1;
         case 't': *out = '\t'; return 1;
 
+        case '0': case '1': case '2': case '3':
+        case '4': case '5': case '6': case '7': {
+            // Parse up to 3 octal digits
+            int ch = *s - '0';
+            s++;
+            if (*s >= '0' && *s <= '7') {
+                ch = 8 * ch + *s - '0';
+            } else {
+                *out = ch;
+                return 1;
+            }
+            s++;
+            if (*s >= '0' && *s <= '7') {
+                ch = 8 * ch + *s - '0';
+            } else {
+                *out = ch;
+                return 2;
+            }
+            *out = ch;
+            return 3;
+        } break;
         case 'x': case 'X': { // Parse up to 2 hex digits
             s++;
             int ch = 0;
@@ -50,4 +70,8 @@ int escape_char(char* out, const char* s) {
         }
         default: *out = '\\'; return 0; // Unrecognized escape sequence - do nothing
     }
+}
+
+int expand_str(char* out, const char* s) {
+    return 0;
 }

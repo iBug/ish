@@ -204,7 +204,6 @@ int main(int _argc, char * const * _argv) {
                         fputs(s, fp);
                         fputc('\n', fp);
                         fclose(fp);
-                        close(tmp_fd);
 
                         // Get back written data
                         fp = fopen(tmp, "r");
@@ -215,17 +214,29 @@ int main(int _argc, char * const * _argv) {
                         int tmp_fd = mkstemp(tmp);
                         FILE *fp = fdopen(tmp_fd, "w");
                         // Write data
-                        char *buf = malloc(sizeof(char) * MAX_CMD_LEN);
+                        char *buf = malloc(sizeof(char) * MAX_CMD_LEN),
+                             *buf2 = malloc(sizeof(char) * 2 * MAX_CMD_LEN);
                         while (1) {
                             get_input(buf, 2);
                             if (!strcmp(buf, s)) // String end
                                 break;
-                            fputs(buf, fp);
+                            int buflen = strlen(buf);
+                            // Process input buffer to expand escapes and variables
+                            for (int i = 0, j = 0; i < buflen;) {
+                                if (buf[i] == '\\') {
+                                    // ???
+                                } else if (buf[i] == '$') {
+                                    // ???
+                                } else {
+                                    buf2[j++] = buf[i++];
+                                }
+                            }
+                            fputs(buf2, fp);
                             fputc('\n', fp);
                         }
                         free(buf);
+                        free(buf2);
                         fclose(fp);
-                        close(tmp_fd);
 
                         // Get back written data
                         fp = fopen(tmp, "r");
