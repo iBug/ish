@@ -323,6 +323,9 @@ int main(int _argc, char * const * _argv) {
                     dup2(wredir, 1);
                     close(wredir);
                 }
+                if (is_pipe) {
+                    close(pipefd[0]); // This is not used
+                }
                 if (process_builtin(argcount, argv))
                     return 0;
                 execvp(argv[0], argv);
