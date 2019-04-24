@@ -245,8 +245,31 @@ int main(int _argc, char * const * _argv) {
                 DEBUG("$%d = %s\n", j, argv[j]);
 
             // Check for builtin commands
-            if (!is_pipe && !rredir && !wredir && process_builtin(argcount, argv))
+            if (!is_pipe && is_builtin(argv[0])) {
+                int rbackup = 0, wbackup = 0;
+                if (rredir) {
+                    rbackup = dup(0); // Backup stdin
+                    dup2(rredir, 0);
+                    close(rredir);
+                }
+                if (wredir) {
+                    wbackup = dup(1); // Backup stdout
+                    dup2(wredir, 1);
+                    close(wredir);
+                }
+
+                process_builtin(argcount, argv);
+
+                if (rbackup) {
+                    dup2(rbackup, 0);
+                    close(rbackup);
+                }
+                if (wbackup) {
+                    dup2(wbackup, 1);
+                    close(wbackup);
+                }
                 continue;
+            }
 
             // Handle pipes
             pipefd[0] = pipefd[1] = 0;

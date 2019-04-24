@@ -12,6 +12,20 @@
 #include "global.h"
 #include "variables.h"
 
+int is_builtin(const char* cmd) {
+    if (!cmd[0]) return 0;
+#define IS_BUILTIN(str) !strcmp(cmd, str)
+    if (IS_BUILTIN(":")) return 1;
+    if (IS_BUILTIN("cd")) return 1;
+    if (IS_BUILTIN("pwd")) return 1;
+    if (IS_BUILTIN("exec")) return 1;
+    if (IS_BUILTIN("exit")) return 1;
+    if (IS_BUILTIN("export")) return 1;
+    if (IS_BUILTIN("unset")) return 1;
+#undef IS_BUILTIN
+    return 0;
+}
+
 int process_builtin(int argc, char * const * args) {
     const char *cmd = args[0];
     if (!strlen(cmd)) {
