@@ -245,7 +245,7 @@ int main(int _argc, char * const * _argv) {
                 DEBUG("$%d = %s\n", j, argv[j]);
 
             // Check for builtin commands
-            if (process_builtin(argcount, argv))
+            if (!is_pipe && process_builtin(argcount, argv))
                 continue;
 
             // Handle pipes
@@ -300,6 +300,8 @@ int main(int _argc, char * const * _argv) {
                     dup2(wredir, 1);
                     close(wredir);
                 }
+                if (process_builtin(argcount, argv))
+                    return 0;
                 execvp(argv[0], argv);
 
                 // Normally unreachable - something's wrong
