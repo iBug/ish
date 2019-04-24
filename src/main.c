@@ -245,7 +245,7 @@ int main(int _argc, char * const * _argv) {
                 DEBUG("$%d = %s\n", j, argv[j]);
 
             // Check for builtin commands
-            if (!is_pipe && process_builtin(argcount, argv))
+            if (!is_pipe && !rredir && !wredir && process_builtin(argcount, argv))
                 continue;
 
             // Handle pipes
