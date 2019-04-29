@@ -41,18 +41,18 @@ char* get_input(char *buf, int mode) {
         hostname[sizeof(hostname) - 1] = 0;
     }
 
-    // mode = prompt type ${PS$mode}
-    if (mode == 1) { // Regular, $PS1
-#ifdef COLOR_PROMPT
-        snprintf(prompt, sizeof(prompt), "\1\x1B[32;1m\2%s@%s\1\x1B[0m\2:\1\x1B[34;1m\2%s\1\x1B[0m\2 $ ", username, hostname, cwd);
-#else
-        snprintf(prompt, sizeof(prompt), "%s $ ", cwd);
-#endif
-    } else {
-        strcpy(prompt, "> "); // Continuation, $PS2
-    }
-
     if (isatty(STDIN_FILENO)) {
+        // mode = prompt type ${PS$mode}
+        if (mode == 1) { // Regular, $PS1
+#ifdef COLOR_PROMPT
+            snprintf(prompt, sizeof(prompt), "\1\x1B]0;ish:%s\a\2\1\x1B[32;1m\2%s@%s\1\x1B[0m\2:\1\x1B[34;1m\2%s\1\x1B[0m\2 $ ", cwd, username, hostname, cwd);
+#else
+            snprintf(prompt, sizeof(prompt), "%s $ ", cwd);
+#endif
+        } else {
+            strcpy(prompt, "> "); // Continuation, $PS2
+        }
+
 #ifdef HAVE_READLINE
         s = readline(prompt);
         if (!s) {

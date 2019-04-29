@@ -304,10 +304,10 @@ int main(int _argc, char * const * _argv) {
                     // Wait for the child to complete
                     int status;
                     waitpid(fork_pid, &status, 0);
-                    DEBUG("Child exit code: %d\n", WEXITSTATUS(status));
-                    if (WEXITSTATUS(status) != 0) {
-                        last_ecode = WEXITSTATUS(status);
-                        // fprintf(stderr, "%d exited: %d\n", fork_pid, WEXITSTATUS(status));
+                    last_ecode = WEXITSTATUS(status);
+                    DEBUG("Child exit code: %d\n", last_ecode);
+                    if (last_ecode != 0) {
+                        // fprintf(stderr, "%d exited: %d\n", fork_pid, last_ecode);
                     }
                 }
             }
@@ -331,7 +331,11 @@ int main(int _argc, char * const * _argv) {
                 execvp(argv[0], argv);
 
                 // Normally unreachable - something's wrong
-                fprintf(stderr, "%s: %s\n", argv[0], strerror(errno));
+                if (errno == ENOENT) {
+                    fprintf(stderr, "%s: command not found\n", argv[0]);
+                } else {
+                    fprintf(stderr, "%s: %s\n", argv[0], strerror(errno));
+                }
                 exit(127);
             }
         }

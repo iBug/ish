@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "global.h"
 #include "variables.h"
 
 int escape_char(char* out, const char* s) {
@@ -113,7 +114,19 @@ int expand_token(char* out, const char* s, size_t maxlen) {
                     }
                 }
                 break;
+            } else if (j == 0) {
+                // Special variable?
+                varname[0] = *s;
+                varname[1] = 0;
+                break;
             } else break;
+        }
+        if (j == 0) {
+            // Handle special variables
+            if (varname[0] == '?') {
+                sprintf(out, "%d", last_ecode);
+            }
+            return 2;
         }
         varvalue = get_variable(varname);
         varlen = varvalue ? strlen(varvalue) : 0;
